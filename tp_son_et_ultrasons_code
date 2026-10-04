@@ -1,0 +1,112 @@
+# TP sons et ultrasons
+
+import numpy as np
+import functions
+import matplotlib.pyplot as plt
+import sympy as sp
+import math
+
+# A- Rappeles théoriques
+
+# B- Mesure de la vitesse d'un front d'onde sonore
+
+# vitesse du front d'onde
+
+delta_l = np.array([10, 20, 30, 40, 50])*1e-2# distance entre les deux positions du microphone
+delta_t = np.array([0.280, 0.560, 0.88, 1.160, 1.440])*1e-3# intervalle de temps entre les mesures (mesuré a l'oscilloscope) en s
+
+v_g = delta_l/delta_t # vitesse du front d'onde en m/s
+v_g_th = 340.29 # en m/s
+
+print(f"la vitesse du front d'onde est {functions.uncertainty_A(v_g)[0]:.3f} +/- {functions.uncertainty_A(v_g)[2]:.3f} m/s")
+print(f"l'ecart relatif de v_g a la theorie est {functions.relative_difference(v_g_th, np.mean(v_g)):.3f} ")
+
+# C- Mesures de la vitesse de phases d'ondes ultrasonores
+
+# 1- Utilisation d'une onde progressive
+
+delta_nu = 1.54e3 # incertitude sur la frequence mesurée a l'oscilloscope en Hz
+X_1 = 29.7e-2 # première position en phase des ondes en m
+X_2 = 38.4e-2 # 10 e position de phase des ondes en m
+delta_X_1 = 0.05e-2 # incertitude sur la position de X_1
+delta_X_2 = 0.05e-2 # incertitude sur la position de X_2
+
+lambdaa =(X_2-X_1)/10 # longueur d'onde expérimentale en m
+x_1, x_2 = sp.symbols("x_1, x_2")
+lambd = (x_2-x_1)/10
+variables = [x_1, x_2]
+values = np.array([X_1, X_2])
+uncertainty = np.array([delta_X_1, delta_X_2])
+delta_lambdaa = functions.undirect_uncertainty(lambd, variables, values, uncertainty)
+
+print(f"la longueur d'onde expérimentale est {lambdaa:.3f} +/- {delta_lambdaa:.3f} m")
+
+nu = 40e3 # frequence de l'onde en Hz
+
+v = lambdaa*nu # vitesse de phase de l'onde ultrasonore en m/s
+delta_v = v*(delta_lambdaa/lambdaa+delta_nu/nu) # incertitude sur la mesure de v en m/s
+
+print(f"la vitesse de l'onde ultrasonore est {v:.3f}+/- {delta_v:.3f} m/s")
+
+# 2- Superposition d'ondes progressives
+
+X_1 = 30.2e-2 # position du premier maximum d'onde en m
+X_2 = 34.7e-2 # 10 e position de maximum de l'ondes en m
+delta_X_1 = 0.05e-2 # incertitude sur la position de X_1
+delta_X_2 = 0.05e-2 # incertitude sur la position de X_2
+
+lambdaa = 2*(X_2-X_1)/10 # longueur d'onde expérimentale en m
+x_1, x_2 = sp.symbols("x_1, x_2")
+lambd = (x_2-x_1)/10
+variables = [x_1, x_2]
+values = np.array([X_1, X_2])
+uncertainty = np.array([delta_X_1, delta_X_2])
+delta_lambdaa = functions.undirect_uncertainty(lambd, variables, values, uncertainty)
+
+print(f"la longueur d'onde expérimentale est {lambdaa:.3f} +/- {delta_lambdaa:.3f} m")
+
+v = lambdaa*nu # vitesse de phase de l'onde ultrasonore en m/s
+delta_v = v*(delta_lambdaa/lambdaa) # incertitude sur la mesure de v en m/s
+
+print(f"la vitesse de l'onde ultrasonore est {v:.3f}+/- {delta_v:.3f} m/s")
+
+# Phenomene de battement les frquences (nu_1 et nu_2 proches)
+
+nu_1 = 40.5e3 # frenquence de l'onde 1 en Hz
+nu_2 = 40.4e3 # frequence de l'onde 2 en Hz
+delta_nu_1 = 0.02e3 # incertitude sur a mesure de nu_1 en Hz
+delta_nu_2 = 0.72e3 # incertitude sur la frequence de nu_2 en Hz
+
+nu_bat_th = abs(nu_1-nu_2) # frequece de battement en Hz
+
+nu_bat_exp = 54.42 # frequence de battement mesurée a l'oscilloscope en Hz
+
+delta_nu_bat = math.sqrt(delta_nu_1**2+delta_nu_2**2) # incertitude sur la mesure de nu_bat_exp en Hz
+
+print(f"la frequence de battement theorique est {nu_bat_th:.3f} en Hz")
+print(f"la frequence de battement experimentale est {nu_bat_exp:.3f} +/- {delta_nu_bat:.3f} en Hz")
+print(f"l'ecart relatif de nu_bat_exp a la theorie est {functions.relative_difference(nu_bat_th, nu_bat_exp):.3f} ")
+
+# D- Effet doppler
+
+fr =np.array([-34.72, -39.06, -25, 29.4, 35.7, 25.7]) #frequence de rotation de la source en Hz
+f =np.array([38.5, 38.10, 38.8, 41.06, 41.9, 41.20])*1e3 # frequences de l'onde mesurée en Hz
+
+a = np.cov(fr, f, ddof=0)[0, 1]/np.var(fr) # pente de la regression lineaire
+
+b = np.mean(f)-a*np.mean(fr) # ordonnée a l'origine de la regression lineaire
+
+
+f_model = a * fr + b
+
+f_diff = f - f_model
+
+delta_a = (2* np.sqrt(np.sum(f_diff**2) / (len(fr) - 2))/ np.sqrt(np.sum((fr - np.mean(fr))**2)))
+
+r = 6.8e-2 # rayon de rotation de la source en m
+f_0 = b
+
+v_p = 2*np.pi*r*f_0/a # vitesse de propagation de l'onde en m/s
+delta_v_p = v_p*(delta_a/a) # incertitude sur la mesure de
+
+print(f"la vitesse de propagation de l'onde est {v_p:.3f} +/- {delta_v_p:.3f} m/s")
